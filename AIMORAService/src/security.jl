@@ -43,10 +43,16 @@ function _path_is_inside(candidate::AbstractString, root::AbstractString)
     normalized_candidate = _normalized_comparison_path(candidate)
     normalized_root = _normalized_comparison_path(root)
     normalized_candidate == normalized_root && return true
-    separator = Sys.iswindows() ? "\\" : "/"
-    root_prefix = endswith(normalized_root, separator) ? normalized_root :
-                  normalized_root * separator
-    return startswith(normalized_candidate, root_prefix)
+
+    relative = try
+        relpath(normalized_candidate, normalized_root)
+    catch
+        return false
+    end
+    isabspath(relative) && return false
+
+    components = splitpath(normpath(relative))
+    return !isempty(components) && first(components) != ".."
 end
 
 function confine_existing_file(policy::PathPolicy, requested_path::AbstractString)
