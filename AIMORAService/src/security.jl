@@ -34,25 +34,21 @@ function constant_time_equal(left::AbstractString, right::AbstractString)
     return difference == 0
 end
 
-function _normalized_comparison_path(path::AbstractString)
-    normalized = normpath(String(path))
-    return Sys.iswindows() ? lowercase(normalized) : normalized
-end
-
 function _path_is_inside(candidate::AbstractString, root::AbstractString)
-    normalized_candidate = _normalized_comparison_path(candidate)
-    normalized_root = _normalized_comparison_path(root)
-    normalized_candidate == normalized_root && return true
+    current = dirname(String(candidate))
+    canonical_root = String(root)
 
-    relative = try
-        relpath(normalized_candidate, normalized_root)
-    catch
-        return false
+    while true
+        try
+            samefile(current, canonical_root) && return true
+        catch
+            return false
+        end
+
+        parent = dirname(current)
+        parent == current && return false
+        current = parent
     end
-    isabspath(relative) && return false
-
-    components = splitpath(normpath(relative))
-    return !isempty(components) && first(components) != ".."
 end
 
 function confine_existing_file(policy::PathPolicy, requested_path::AbstractString)
